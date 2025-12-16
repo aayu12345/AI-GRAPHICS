@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Create Offer & Download</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
+    body {
+      margin: 0;
+      background: linear-gradient(135deg, #f8fafc, #eef2ff);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 40px 20px;
+    }
+    .card { background: #ffffff; width: 420px; padding: 28px; border-radius: 14px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08); }
+    h1 { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+    p { font-size: 14px; color: #6b7280; margin-bottom: 22px; }
+    .field { margin-bottom: 16px; }
+    label { display: block; font-size: 13px; font-weight: 500; color: #374151; margin-bottom: 6px; }
+    input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 14px; }
+    
+    /* Buttons */
+    .btn-generate { width: 100%; margin-top: 10px; padding: 12px; border-radius: 10px; border: none; background: #4f46e5; color: white; font-size: 15px; font-weight: 500; cursor: pointer; }
+    .btn-generate:hover { background: #4338ca; }
+    .btn-download { 
+        display: inline-block; 
+        margin-top: 20px; 
+        padding: 12px 24px; 
+        border-radius: 10px; 
+        border: none; 
+        background: #10b981; 
+        color: white; 
+        font-weight: 600; 
+        cursor: pointer; 
+        text-decoration: none;
+    }
+    .btn-download:hover { background: #059669; }
+    button:disabled { background: #9ca3af; cursor: not-allowed; }
+
+    /* Result Area */
+    #resultArea { margin-top: 30px; display: none; text-align: center; width: 100%; max-width: 600px; }
+    #outputImage { width: 100%; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); margin-top: 15px; border: 5px solid white; }
+    .loading-text { color: #4f46e5; font-weight: 500; display: none; margin-top: 15px; }
+    .badge { font-size: 11px; padding: 3px 8px; border-radius: 999px; margin-left: 6px; }
+    .india { background: #e0f2fe; color: #0369a1; }
+    .intl { background: #ede9fe; color: #5b21b6; }
+  </style>
+</head>
+<body>
+
+  <form id="offerForm" class="card">
+    <h1>Create Offer</h1>
+    <p>AI will generate your custom offer image</p>
+
+    <div class="field">
+      <label>Offer Name</label>
+      <input type="text" name="offer" placeholder="New Year Offer" required />
+    </div>
+
+    <div class="field">
+      <label>Indian Promo Code <span class="badge india">IN</span></label>
+      <input type="text" name="promo_code_india" placeholder="NYIND2025" required />
+    </div>
+
+    <div class="field">
+      <label>International Promo Code <span class="badge intl">INTL</span></label>
+      <input type="text" name="promo_code_international" placeholder="NYINT2025" required />
+    </div>
+
+    <div class="field">
+      <label>Discount (%)</label>
+      <input type="number" name="discount" placeholder="54" min="0" max="100" />
+    </div>
+
+    <div class="field">
+      <label>Theme</label>
+      <input type="text" name="theme" placeholder="Learning & Growth" />
+    </div>
+
+    <button type="submit" id="submitBtn" class="btn-generate">Generate Offer Image</button>
+    <div id="loading" class="loading-text">✨ AI is designing your offer... please wait.</div>
+  </form>
+
+  <div id="resultArea">
+    <h3 style="color: #1e293b;">🎉 Your Offer is Ready!</h3>
+    <img id="outputImage" src="" alt="AI Result">
+    <br>
+    <button id="downloadBtn" class="btn-download">Download Image (PNG)</button>
+  </div>
+
+  <script>
+    const form = document.getElementById('offerForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const loading = document.getElementById('loading');
+    const resultArea = document.getElementById('resultArea');
+    const outputImage = document.getElementById('outputImage');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      submitBtn.disabled = true;
+      submitBtn.innerText = 'Creating Image...';
+      loading.style.display = 'block';
+      resultArea.style.display = 'none';
+
+      const formData = new FormData(form);
+      const payload = Object.fromEntries(formData.entries());
+
+      try {
+        // Webhook URL check karein (Test ya Production)
+        const response = await fetch('https://submastery.app.n8n.cloud/webhook-test/newyear', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (data.image) {
+          // 1. Image ko display karna
+          outputImage.src = data.image; 
+          resultArea.style.display = 'block';
+
+          // 2. Download functionality set karna
+          downloadBtn.onclick = () => {
+            const link = document.createElement('a');
+            link.href = data.image; // Base64 data use ho raha hai
+            link.download = `Offer_${payload.offer || 'Banner'}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          };
+
+          // Scroll to result
+          resultArea.scrollIntoView({ behavior: 'smooth' });
+        } else {
+          alert('Error: Data received but image missing. Check n8n Respond node.');
+        }
+
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Connection failed. Make sure n8n workflow is active and CORS is enabled.');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerText = 'Generate Offer Image';
+        loading.style.display = 'none';
+      }
+    });
+  </script>
+
+</body>
+</html>
