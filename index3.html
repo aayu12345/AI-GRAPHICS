@@ -114,7 +114,7 @@
 
       try {
         // Webhook URL check karein (Test ya Production)
-        const response = await fetch('https://submastery.app.n8n.cloud/webhook-test/newyear', {
+        const response = await fetch('https://submastery.app.n8n.cloud/webhook/newyear', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -155,4 +155,5 @@
   </script>
 
 </body>
+
 </html>
